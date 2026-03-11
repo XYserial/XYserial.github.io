@@ -1,0 +1,20 @@
+# Bundler
+.bundle
+vendor
+Gemfile.lock
+
+# Jekyll build output
+_site
+.jekyll-cache
+.jekyll-metadata
+
+# Node (if used)
+node_modules
+package-lock.json
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+

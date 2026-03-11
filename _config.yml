@@ -1,0 +1,116 @@
+# ==========================================
+# XYserial.github.io - Blog Configuration
+# Theme: Chirpy (https://github.com/cotes2020/jekyll-theme-chirpy)
+# ==========================================
+
+theme: jekyll-theme-chirpy
+
+lang: zh-CN
+timezone: Asia/Shanghai
+
+# ----- 博客基本信息 -----
+title: Yang Xie
+tagline: NJU · LLM for SE · 记录研究与成长
+description: >-
+  南京大学 Yang Xie 的技术博客。
+  记录 LLM 测试与软件工程研究、互联网大厂备战笔记，以及保研路上的思考。
+
+url: "https://XYserial.github.io"
+baseurl: ""
+
+# ----- 社交账号 -----
+github:
+  username: XYserial
+
+social:
+  name: Yang Xie
+  email: ""
+  links:
+    - https://github.com/XYserial
+
+# ----- 头像（可替换为自己的图片路径）-----
+avatar: ""
+
+# ----- 主题外观 -----
+theme_mode: # 留空 = 跟随系统；可填 light 或 dark
+
+# ----- 文章目录 -----
+toc: true
+
+# ----- 评论系统（可选，暂时关闭）-----
+comments:
+  active: ""
+
+# ----- 每页文章数 -----
+paginate: 10
+
+# ----- 分页配置 -----
+permalink: /posts/:title/
+
+# ==========================================
+# 以下配置请勿随意修改
+# ==========================================
+
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: highlight
+    span:
+      line_numbers: false
+    block:
+      line_numbers: true
+      start_line: 1
+
+collections:
+  tabs:
+    output: true
+    sort_by: order
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+      comments: true
+      toc: true
+      permalink: /posts/:title/
+  - scope:
+      path: _tabs
+      type: tabs
+    values:
+      layout: page
+      permalink: /:title/
+
+sass:
+  style: compressed
+
+compress_html:
+  clippings: all
+  comments: all
+  endings: all
+  profile: false
+  blanklines: false
+  ignore:
+    envs: [development]
+
+exclude:
+  - "*.gem"
+  - "*.gemspec"
+  - docs
+  - tools
+  - README.md
+  - LICENSE
+  - "*.config.js"
+  - package*.json
+  - github-pages-blog
+
+jekyll-archives:
+  enabled: [categories, tags]
+  layouts:
+    category: category
+    tag: tag
+  permalinks:
+    tag: /tags/:name/
+    category: /categories/:name/
+
