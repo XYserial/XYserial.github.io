@@ -1,0 +1,774 @@
+# 学习路线：Mock 与测试替身体系
+
+---
+
+## 学习路径总览
+
+```
+软件测试基础（单元测试、测试金字塔、FIRST原则）
+    ↓
+测试替身理论（Dummy/Stub/Spy/Mock/Fake 辨析）
+    ↓
+Mock 框架核心机制（录制-回放、期望-验证、参数匹配）
+    ↓
+经典 Mock 框架实践（Mockito / unittest.mock / Sinon.js）
+    ↓
+依赖注入与可测试性设计（SOLID原则、依赖反转）
+    ↓
+高级 Mock 模式与反模式（Partial Mock、过度 Mocking）
+    ↓
+论文与经典文献精读（xUnit Test Patterns、Growing OO Software）
+    ↓
+综合项目实战与重构
+```
+
+---
+
+## 7 个模块 · 学习进度总表
+
+| 模块 | 名称 | 预计时间 | 完成标志 | 状态 |
+|------|------|----------|----------|------|
+| 模块一 | 软件测试基础与单元测试 | 1 周 | 能阐述测试金字塔与 FIRST 原则，并编写基础单元测试 | ☐ |
+| 模块二 | 测试替身类型与理论 | 1.5 周 | 能清晰辨析 Dummy、Stub、Spy、Mock、Fake 的区别与适用场景 | ☐ |
+| 模块三 | Mock 框架核心原理 | 1.5 周 | 能解释录制-回放、期望-验证机制，并手动实现一个简易 Mock | ☐ |
+| 模块四 | 主流 Mock 框架实战 | 2 周 | 能熟练使用一门主流框架（如 Mockito）完成复杂场景的 Mock | ☐ |
+| 模块五 | 可测试性设计与依赖注入 | 2 周 | 能运用依赖注入重构一个紧耦合类，使其易于测试 | ☐ |
+| 模块六 | 高级模式与经典文献精读 | 1.5 周 | 能识别 Mock 反模式，并完成指定经典章节的阅读笔记 | ☐ |
+| 模块七 | 综合项目实战 | 2 周 | 为一个已有项目补充单元测试，测试覆盖率提升至 70%+ | ☐ |
+
+---
+
+---
+# 模块一：软件测试基础与单元测试
+
+## 知识点与讲解
+本模块旨在建立对软件测试，特别是单元测试的坚实理解，这是理解和使用 Mock 与测试替身的前提。
+
+### 软件测试基础
+软件测试是评估软件产品以发现其实际结果与预期结果之间差异的过程。其核心目标是**验证**（我们是否在构建正确的产品？）和**验证**（我们是否在正确地构建产品？）。测试活动贯穿整个软件开发生命周期。
+
+#### 测试金字塔
+一个经典的测试策略模型，由 Mike Cohn 提出，强调测试的层次和比例。
+- **单元测试**（底层，最多）：针对软件的最小可测试单元（如函数、方法）进行测试。执行快、成本低、隔离性好。
+- **集成测试**（中层，适中）：测试多个单元或组件之间的交互，验证接口和数据流。
+- **端到端测试**（顶层，最少）：模拟真实用户场景，测试整个应用流程。执行慢、成本高、脆弱。
+
+### 单元测试详解
+单元测试是 Mock 与测试替身技术的主要应用场景。
+
+#### 什么是单元测试？
+单元测试是针对程序模块（软件设计的最小单位）进行的正确性检验。在面向对象编程中，单元通常指一个类的一个方法。其核心特征是**隔离性**——一个单元测试不应依赖于外部系统（如数据库、网络服务、文件系统）或其他单元的状态。
+
+#### 优秀单元测试的特性（FIRST原则）
+- **F**ast（快速）：测试应能快速执行，以鼓励频繁运行。
+- **I**ndependent/Isolated（独立/隔离）：测试之间不应相互依赖，且应隔离外部依赖。
+- **R**epeatable（可重复）：在任何环境中都能以相同方式运行并得到相同结果。
+- **S**elf-Validating（自验证）：测试应能自动判断通过与否，无需人工检查。
+- **T**imely（及时）：理想情况下，测试应在产品代码之前或同时编写（测试驱动开发，TDD）。
+
+#### 单元测试的结构（AAA模式）
+一个清晰可读的单元测试通常包含三个部分：
+1.  **Arrange（准备）**：设置测试的前提条件，初始化对象，配置测试数据。
+2.  **Act（执行）**：调用被测试的方法或功能。
+3.  **Assert（断言）**：验证执行结果是否符合预期。
+
+#### 测试框架与断言库
+- **框架**：提供测试用例的组织、发现和运行能力。如 JUnit (Java), pytest (Python), Jest (JavaScript)。
+- **断言**：用于验证代码行为的语句。如 `assertEquals(expected, actual)`, `assertTrue(condition)`, `assertThrows(exceptionType, executable)`。
+
+#### 测试替身的引入
+当被测试单元（SUT, System Under Test）依赖于其他组件（DOC, Depended-On Component）时，为了达到隔离测试的目的，我们需要用可控的、模拟的组件来替代真实的依赖。这些模拟的组件就是**测试替身**。这是模块二的核心内容。
+
+## 题目与答案
+**题目 1**：请简述测试金字塔模型中各层测试的特点和主要目的，并解释为什么单元测试应该数量最多。
+**答案**：测试金字塔自底向上分为三层：1) **单元测试**：针对最小代码单元，快速、隔离、成本低，目的是验证代码逻辑的正确性，应数量最多以快速反馈。2) **集成测试**：验证模块/服务间的接口与协作，速度中等，目的是发现集成问题。3) **端到端测试**：模拟用户完整业务流程，速度慢、脆弱、成本高，目的是验证系统整体行为是否符合用户需求。单元测试数量最多是因为其执行效率最高、定位问题最精确、维护成本最低，能为开发者提供最快速的反馈，是保障代码质量的第一道也是最核心的防线。
+
+**题目 2**：根据FIRST原则，分析以下测试场景的问题：“一个测试用例需要先向数据库插入特定数据，然后执行操作，最后验证结果并清理数据库。该测试在本地开发环境总是通过，但在持续集成服务器上偶尔失败。”
+**答案**：该测试违反了FIRST原则中的 **Independent（独立）** 和 **Repeatable（可重复）**。首先，它依赖外部数据库的状态，测试之间可能因数据残留相互影响，缺乏隔离性。其次，在不同环境（本地 vs CI服务器）下，数据库配置、网络或并发操作可能导致测试行为不一致，结果不可重复。应使用测试替身（如内存数据库、Mock对象）来隔离数据库依赖，确保测试的独立性和可重复性。
+
+**题目 3**：请使用AAA模式为以下Python函数设计一个单元测试。函数：`def divide(a: float, b: float) -> float: return a / b`。请写出测试代码的伪代码或描述。
+**答案**：
+```python
+# 使用pytest风格伪代码
+def test_divide_normal_case():
+    # Arrange: 准备测试输入
+    numerator = 6.0
+    denominator = 2.0
+    expected_result = 3.0
+
+    # Act: 执行被测试函数
+    actual_result = divide(numerator, denominator)
+
+    # Assert: 验证结果
+    assert actual_result == expected_result
+
+def test_divide_by_zero_raises_exception():
+    # Arrange
+    numerator = 5.0
+    denominator = 0.0
+
+    # Act & Assert (结合)：验证是否抛出特定异常
+    with pytest.raises(ZeroDivisionError):
+        divide(numerator, denominator)
+```
+
+---
+# 模块二：测试替身类型与理论
+
+## 知识点与讲解
+本模块深入探讨测试替身（Test Double）的各种类型、其核心理论以及在单元测试中如何选择和应用它们。
+
+### 测试替身概述
+**测试替身**是一个通用术语，指在测试中为了达到特定目的而替换掉真实依赖对象的任何对象。其核心价值在于**实现测试的隔离**，使我们能够单独、快速、稳定地测试目标代码（SUT）。
+
+### 测试替身的五种经典类型
+Gerard Meszaros 在《xUnit Test Patterns》中定义了五种测试替身，它们的目的和行为各不相同。
+
+#### ### Dummy（虚设对象）
+- **定义**：被传入但永远不会被真正使用的对象。仅用于填充参数列表以满足编译或运行时要求。
+- **原理**：通常是最简单、最“空”的实现，如 `None`、`null`、或一个仅包含空方法的对象。
+- **示例**：测试一个邮件发送器，其构造函数需要一个“日志记录器”参数，但当前测试不关心日志。此时可以传入一个不做任何事的 `DummyLogger` 实例。
+- **注意事项**：Dummy 对象不应被 SUT 调用任何方法。如果被调用，要么测试应失败，要么它应该是一个更复杂的替身（如 Stub 或 Mock）。
+
+#### ### Stub（桩）
+- **定义**：为 SUT 的调用提供预设的、固定的（“硬编码”）应答。
+- **原理**：通过编程方式让 Stub 在特定方法被调用时返回特定值或抛出特定异常，从而将 SUT 引导至我们想要测试的执行路径。
+- **示例**：测试一个支付服务，它依赖一个 `ExchangeRateService`。在测试中，我们可以用一个 `StubExchangeRate` 替换真实服务，让它始终返回 `1.0`（固定汇率），从而隔离外部汇率波动，专注于测试支付逻辑。
+- **注意事项**：Stub 是“被动”的，它不验证自己是否被调用。验证行为是 Mock 的职责。
+
+#### ### Spy（间谍）
+- **定义**：一种能记录其被调用情况的 Stub。它除了提供预设应答，还会秘密记录调用细节（如：被调用了多少次、用什么参数调用）。
+- **原理**：在测试的断言阶段，我们可以查询 Spy 记录的交互信息，并对其进行验证。
+- **示例**：测试一个用户注册流程，注册成功后应调用一次 `EmailService.sendWelcomeEmail(user)`。我们可以传入一个 `EmailServiceSpy`，它记录所有对 `sendWelcomeEmail` 的调用。在测试最后，断言该 Spy 被调用了一次且参数正确。
+- **注意事项**：Spy 通常通过包装一个真实对象或手动记录调用来实现。它模糊了 Stub（提供应答）和 Mock（验证行为）的界限。
+
+#### ### Mock（模拟对象）
+- **定义**：一种预先编程了**期望**的对象，它预期自己会被如何调用（方法、参数、次数）。测试中会**自动验证**这些期望是否得到满足。
+- **原理**：Mock 对象在测试的 **Arrange** 阶段就设置好期望（Expectations）。在 **Act** 阶段，SUT 与 Mock 交互。在 **Assert** 阶段，Mock 框架会自动检查所有期望是否满足（这通常内置于测试框架的 `verify` 阶段）。
+- **示例**：使用 Mockito (Java) 测试一个订单处理器，它必须调用 `InventoryService.reserve(itemId, quantity)` 一次。
+    ```java
+    // Arrange
+    InventoryService mockInventory = mock(InventoryService.class);
+    when(mockInventory.reserve("item123", 5)).thenReturn(true);
+    OrderProcessor processor = new OrderProcessor(mockInventory);
+
+    // Act
+    processor.processOrder(new Order("item123", 5));
+
+    // Assert (验证期望被满足)
+    verify(mockInventory, times(1)).reserve("item123", 5);
+    ```
+- **注意事项**：Mock 的核心是**行为验证**（Behavior Verification），即验证 SUT 是否正确调用了其依赖。过度使用 Mock 可能导致测试过于脆弱（与实现细节耦合过紧）。
+
+#### ### Fake（伪造对象）
+- **定义**：一个轻量级的、可工作的实现，用于替换一个在测试环境中不实用或太笨重的真实组件。
+- **原理**：Fake 具有真实组件类似的行为，但采用了简化的、适用于测试的实现方式。
+- **示例**：用一个基于内存的 `FakeUserRepository` 替换真实的数据库 `UserRepository`。这个 Fake 使用 `HashMap` 或 `List` 来存储用户数据，支持基本的增删改查操作，但无需数据库连接。
+- **注意事项**：Fake 本身应该是经过充分测试的、可靠的对象。它通常用于集成测试或需要测试复杂交互但又要隔离外部基础设施的场景。
+
+### 类型对比与选择指南
+| 类型 | 主要目的 | 是否验证行为？ | 是否提供预设应答？ | 典型应用场景 |
+| :--- | :--- | :--- | :--- | :--- |
+| **Dummy** | 填充参数 | 否 | 否 | 满足接口要求，但依赖未被使用 |
+| **Stub** | 控制间接输入 | 否 | **是** | 让 SUT 进入特定状态或路径 |
+| **Spy** | 记录间接输出/交互 | **是**（事后查询） | 可选（通常是） | 需要了解 SUT 如何与依赖交互时 |
+| **Mock** | **验证间接输出/交互** | **是**（自动断言） | 可选（通常是） | 行为验证，确保 SUT 发出了正确的命令 |
+| **Fake** | 提供可工作的简化实现 | 否 | **是**（通过实现逻辑） | 替换笨重的依赖（如数据库、外部API） |
+
+**选择策略**：
+1.  **首选 Fake**：如果有一个简单、可靠、快速的 Fake 实现可用（如内存数据库），优先使用它，因为它更贴近真实交互。
+2.  **需要控制输入时用 Stub**：当测试需要依赖返回特定值或异常时。
+3.  **需要验证输出行为时用 Mock**：当测试的重点是验证 SUT 是否以正确的参数、正确的顺序调用了依赖的方法时。
+4.  **谨慎使用 Mock**：避免过度指定交互细节，否则测试会变得脆弱。关注“什么”被调用，而非“如何”被调用的每个细节。
+5.  **Dummy 和 Spy 作为补充**：在特定场景下使用。
+
+## 题目与答案
+**题目 1**：概念辨析题：请简要说明 Stub 和 Mock 的核心区别。一个测试替身是否可以同时是 Stub 和 Mock？
+**答案**：Stub 和 Mock 的核心区别在于其**主要目的**。Stub 的主要目的是**控制测试的间接输入**，即为 SUT 提供预设的应答，引导测试路径。Mock 的主要目的是**验证测试的间接输出**，即断言 SUT 是否以预期的方式调用了其依赖。是的，一个测试替身可以同时充当 Stub 和 Mock。现代 Mock 框架（如 Mockito）创建的对象通常兼具这两种能力：你既可以预设它的方法返回值（Stub 行为），也可以在测试最后验证它的方法是否被调用（Mock 行为）。
+
+**题目 2**：分析题：在测试一个“数据报告生成器”（ReportGenerator）时，它需要从一个 `DataFetcher` 服务获取数据，然后调用一个 `PDFExporter` 服务生成PDF。你会为这两个依赖选择什么类型的测试替身？请说明理由。
+**答案**：对于 `DataFetcher`，应使用 **Stub**。因为测试报告生成逻辑时，我们需要控制其输入数据（即 `DataFetcher` 返回什么数据），以测试报告在不同数据下的生成是否正确。对于 `PDFExporter`，应使用 **Mock**。因为测试需要验证报告生成器在获取数据后，是否正确地调用了导出服务（例如，用正确的数据调用了 `export` 方法一次）。这属于对 SUT 输出行为的验证。
+
+**题目 3**：编码/动手题：假设有一个 `NotificationService` 类，它依赖一个 `EmailSender`。`NotificationService` 有一个方法 `sendOverdueAlert(userId)`，该方法会根据 userId 查找用户邮箱，然后调用 `EmailSender.send(to, subject, body)`。请用伪代码描述如何为 `EmailSender` 创建一个 **Spy**，并在测试中验证 `send` 方法被调用了一次，且 `to` 参数是正确的邮箱地址。
+**答案**：
+```python
+# 伪代码，使用手动实现的 Spy 模式
+class EmailSenderSpy:
+    def __init__(self):
+        self.sent_calls = [] # 记录所有调用信息的列表
+
+    def send(self, to, subject, body):
+        # 记录调用细节
+        self.sent_calls.append({'to': to, 'subject': subject, 'body': body})
+        # 也可以选择实际发送邮件（如果是Fake），这里仅记录
+
+def test_sendOverdueAlert():
+    # Arrange
+    spy_email_sender = EmailSenderSpy()
+    notification_service = NotificationService(spy_email_sender)
+    test_user_id = "user123"
+    expected_email = "user@example.com"
+
+    # Act
+    notification_service.sendOverdueAlert(test_user_id)
+
+    # Assert
+    assert len(spy_email_sender.sent_calls) == 1
+    assert spy_email_sender.sent_calls[0]['to'] == expected_email
+    # 还可以进一步断言 subject 和 body 的内容
+```
+
+---
+
+---
+# 模块三：Mock 框架核心原理
+
+## 知识点与讲解
+本模块旨在深入剖析 Mock 框架的内部工作机制，理解其如何创建、配置和管理测试替身，从而提升测试的精准度和对框架的掌控力。
+
+### 动态代理与字节码增强
+Mock 框架的核心技术在于**运行时动态生成对象**，以替代真实对象。主要实现手段有两种：
+1.  **动态代理**：在运行时创建实现指定接口的代理类实例。当调用代理对象的方法时，调用会被拦截并转发到 `InvocationHandler`，由它决定返回预设值、抛出异常还是执行部分真实逻辑。适用于接口的模拟。
+2.  **字节码增强**：通过修改类的字节码（通常在类加载时），在方法调用处插入拦截逻辑。这种方式可以模拟**具体类**（包括非 final 的方法），功能更强大，但实现也更复杂。
+
+### Mock 的生命周期与状态管理
+一个 Mock 对象通常经历以下生命周期阶段：
+*   **创建**：通过框架的 API（如 `Mockito.mock()`）生成。
+*   **配置/打桩**：定义其行为，即当特定方法被以特定方式调用时，应返回什么值或执行什么动作。
+*   **使用**：在测试中被作为依赖项注入到被测对象中。
+*   **验证**：检查在测试过程中，Mock 对象的某些方法是否被按预期调用。
+*   **重置**（可选）：清除其所有的交互记录和配置，以便在下一个测试中复用。
+
+### 方法调用的匹配与验证
+框架需要精确地匹配测试代码中对 Mock 的调用与测试人员预设的行为。
+*   **参数匹配器**：允许灵活地匹配方法参数。
+    *   **精确匹配**：`eq(“value”)`。
+    *   **灵活匹配**：`any()`, `anyString()`, `isNull()`, `contains(“sub”)`。
+    *   **自定义匹配**：通过 `ArgumentMatcher` 或 `ArgumentCaptor` 实现复杂逻辑。
+*   **验证**：核心是验证**交互行为**，而不仅仅是状态。
+    *   **基本验证**：`verify(mock).someMethod()`。
+    *   **调用次数验证**：`times(n)`, `atLeast(n)`, `never()`。
+    *   **调用顺序验证**：通过 `InOrder` 对象验证多个 Mock 的交互顺序。
+
+### 打桩与行为定义
+打桩是为 Mock 对象的方法调用预设响应。
+*   **返回值打桩**：`when(mock.method()).thenReturn(value)`。
+*   **异常打桩**：`when(mock.method()).thenThrow(exception)`。
+*   **连续打桩**：`thenReturn(value1, value2, …)` 或多次链式调用，用于模拟多次调用返回不同值。
+*   **调用真实方法**：`thenCallRealMethod()`，在部分模拟（Spy）中常用。
+*   **动态应答**：`thenAnswer(invocation -> { … })`，可以根据调用时的参数动态生成返回值。
+
+### 高级原理：Mockito 的架构浅析
+以 Mockito 为例，其核心组件包括：
+1.  **MockCreationSettings**：存储创建 Mock 时的所有配置（如类型、名称、默认应答器）。
+2.  **MockHandler**：处理 Mock 对象上所有方法调用的核心接口。`InvocationNotifierHandler` 是其关键实现，负责通知“调用监听器”（用于验证）和调用“桩信息”（用于返回预设值）。
+3.  **Invocation**：对一次方法调用的封装，包含方法、参数、Mock 对象本身等信息。
+4.  **MockingProgress**：线程安全的上下文，用于跟踪当前是在进行“打桩”还是“验证”。
+
+## 题目与答案
+**题目 1**：概念辨析题：动态代理和字节码增强在实现 Mock 功能时的主要区别是什么？分别适用于什么场景？
+**答案**：主要区别在于生成代理对象的方式和能力范围。动态代理基于 Java 原生接口，在运行时创建接口的代理实例，因此**只能用于模拟接口**。字节码增强则通过修改类的二进制代码实现，可以在类加载时改变其行为，因此**能够模拟具体的类（包括非 final 的方法）**。场景上，动态代理适用于纯面向接口的编程场景；而字节码增强更通用，是大多数现代 Mock 框架（如 Mockito、EasyMock extensions）支持模拟具体类的技术基础。
+
+**题目 2**：分析题：在 Mockito 中，执行 `verify(mock, times(2)).someMethod(anyString());` 这行代码时，框架内部大致经历了哪些关键步骤？
+**答案**：1. **匹配调用**：框架会检查内部记录的、针对 `mock` 的所有调用，寻找与 `someMethod` 方法名匹配且参数符合 `anyString()` 匹配器的调用记录。2. **计数与验证**：统计匹配到的调用次数。3. **断言**：将实际统计的次数（例如 n）与期望值 `times(2)`（即2）进行比较。如果 n == 2，验证通过；否则，抛出 `AssertionError` 异常，报告期望调用次数与实际调用次数的差异。
+
+**题目 3**：动手题：假设你正在设计一个简易的 Mock 框架，支持基本的打桩（返回固定值）和验证。请用伪代码描述 `when().thenReturn()` 和 `verify()` 可能的核心实现逻辑。
+**答案**：
+```java
+// 伪代码核心逻辑
+class SimpleMock {
+    Map<MethodCallSignature, StubbedBehavior> stubbings = new HashMap<>();
+    List<MethodCallSignature> invocations = new ArrayList<>();
+
+    // when(...).thenReturn(value) 的内部简化
+    void stub(MethodCallSignature signature, Object returnValue) {
+        stubbings.put(signature, new StubbedBehavior(returnValue));
+    }
+
+    // 代理/拦截器调用的方法
+    Object intercept(Method method, Object[] args) {
+        MethodCallSignature call = new MethodCallSignature(method, args);
+        invocations.add(call); // 记录调用
+        if (stubbings.containsKey(call)) {
+            return stubbings.get(call).getValue(); // 返回预设值
+        }
+        return null; // 或抛出异常
+    }
+
+    // verify(mock).method(args)
+    void verify(MethodCallSignature expectedCall, int expectedTimes) {
+        int actualTimes = countOccurrences(invocations, expectedCall);
+        if (actualTimes != expectedTimes) {
+            throw new AssertionError(“验证失败...”);
+        }
+    }
+}
+```
+
+---
+# 模块四：主流 Mock 框架实战
+
+## 知识点与讲解
+本模块将聚焦于 Java 和 JavaScript 生态中最主流的 Mock 框架，通过对比和实战示例，掌握如何根据项目特点选择和运用合适的工具。
+
+### Java 生态：Mockito 深度应用
+Mockito 是 Java 单元测试的事实标准，以其简洁的 API 著称。
+*   **依赖注入与注解**：
+    ```java
+    @ExtendWith(MockitoExtension.class) // JUnit 5
+    class ServiceTest {
+        @Mock
+        private Dependency dependency;
+        @InjectMocks
+        private ServiceUnderTest service; // 自动注入 @Mock 字段
+        @Spy
+        private PartialRealObject spyObject; // 部分真实对象
+    }
+    ```
+*   **BDD 风格**：提供 Given-When-Then 语义化 API，提升测试可读性。
+    ```java
+    given(dependency.fetchData()).willReturn(“mocked”);
+    String result = service.process();
+    then(result).isEqualTo(“processed mocked”);
+    ```
+*   **严格桩与冗余验证**：使用 `Mockito.lenient()` 标记非核心的桩，避免因未使用的桩而导致测试失败。使用 `strictness` 模式（如 `Strictness.STRICT_STUBS`）可以提前发现错误的桩配置。
+*   **静态方法模拟**：从 Mockito 3.4.0 开始，通过 `mockStatic` 支持模拟静态方法（需配合 `@ExtendWith` 和 `try-with-resources`）。
+    ```java
+    try (MockedStatic<UtilityClass> mockedStatic = mockStatic(UtilityClass.class)) {
+        mockedStatic.when(UtilityClass::staticMethod).thenReturn(“fake”);
+        // 测试代码
+    }
+    ```
+
+### Java 生态：PowerMock 的取舍
+PowerMock 通过定制类加载器和字节码操作，可以模拟静态方法、构造方法、final 类/方法等 Mockito 的传统短板。
+*   **使用场景**：**仅限**处理遗留代码或无法重构的第三方库时使用。它破坏了单元测试的隔离性，且与 JUnit 5、模块化系统兼容性不佳。
+*   **基本用法**：
+    ```java
+    @RunWith(PowerMockRunner.class)
+    @PrepareForTest({ClassWithStaticMethod.class, FinalClass.class})
+    public class LegacyTest {
+        @Test
+        public void testStatic() {
+            mockStatic(ClassWithStaticMethod.class);
+            when(ClassWithStaticMethod.staticMethod()).thenReturn(“mocked”);
+        }
+    }
+    ```
+*   **重要建议**：在新项目中应通过**重构代码**（如用依赖注入替换静态调用）来避免使用 PowerMock。将其视为“技术债”的临时解决方案。
+
+### JavaScript/TypeScript 生态：Jest 与 vi（Vite）的 Mock
+现代 JS/TS 测试框架通常内置强大的 Mock 功能。
+*   **Jest**：
+    *   **函数模拟**：`jest.fn()` 创建模拟函数，`jest.mock()` 自动模拟整个模块。
+    ```javascript
+    // 模拟单个函数
+    const mockFetch = jest.fn().mockResolvedValue({ json: () => ({ data: ‘test’ }) });
+    // 自动模拟模块
+    jest.mock(‘../api’);
+    import { fetchData } from ‘../api’; // 这里导入的是自动创建的 mock
+    fetchData.mockImplementation(() => ‘mocked’);
+    ```
+    *   **手动模拟**：在 `__mocks__` 目录下创建与模块同名的文件来提供模拟实现。
+*   **Vitest / vi**：Vite 生态的测试框架，API 与 Jest 兼容但更快速。
+    ```javascript
+    import { vi } from ‘vitest’;
+    const mockFn = vi.fn();
+    vi.mock(‘../module’); // 模拟模块
+    vi.spyOn(global, ‘fetch’).mockResolvedValue(new Response()); // 监视并模拟全局对象
+    ```
+
+### 框架选型与最佳实践对比
+| 特性/考量 | Mockito (Java) | Jest/Vitest (JS/TS) | PowerMock (Java) |
+| :--- | :--- | :--- | :--- |
+| **核心能力** | 模拟接口/具体类，简洁API | 模拟函数、模块、定时器等 | 模拟静态、final、构造器、私有方法 |
+| **设计哲学** | 简单、可读、鼓励良好设计 | 零配置、一体化、快速 | 突破限制，处理遗留代码 |
+| **适用场景** | 绝大多数 Java 单元测试 | 现代 JS/TS 项目全栈测试 | 难以重构的旧系统测试 |
+| **性能影响** | 小 | 小（Vitest 尤佳） | 大（修改类加载器） |
+| **推荐程度** | **首选** | **JS/TS 首选** | **尽量避免** |
+
+**最佳实践总结**：
+1.  **优先选择标准框架**：Java 用 Mockito，JS/TS 用 Jest/Vitest。
+2.  **面向接口编程**：便于 Mock，提升代码可测试性和设计质量。
+3.  **避免过度模拟**：不要 Mock 被测对象本身，也不要 Mock 值对象或简单工具类。Mock 应主要用于**外部依赖**（如数据库、网络、复杂服务）。
+4.  **明确测试意图**：区分基于状态的测试（验证返回值）和基于交互的测试（验证方法调用），后者应谨慎使用。
+5.  **保持测试隔离**：每个测试后重置或重新创建 Mock，避免测试间相互影响。
+
+## 题目与答案
+**题目 1**：概念辨析题：在 Java 项目中，什么情况下应该考虑使用 PowerMock 而不是 Mockito？使用 PowerMock 会带来哪些潜在风险？
+**答案**：仅当测试的代码**无法被重构**，且依赖了静态方法、final 类/方法、私有方法或构造器时，才应考虑 PowerMock。其潜在风险包括：1) **测试速度慢**，因其使用自定义类加载器；2) **破坏测试隔离性**，可能影响其他测试；3) **与最新技术栈（如 JUnit 5、Java 模块化）兼容性差**；4) **掩盖设计缺陷**，使开发者安于糟糕的代码结构。
+
+**题目 2**：动手题：使用 Mockito 的 BDD 风格 API 重写以下测试片段。
+```java
+// 原代码
+@Test
+public void testOrderProcessing() {
+    when(inventoryService.checkStock(“item1”)).thenReturn(true);
+    when(paymentService.pay(any(BigDecimal.class))).thenReturn(“success”);
+    Order order = new Order(“item1”, new BigDecimal(“100”));
+    String result = orderService.process(order);
+    assertEquals(“Order processed”, result);
+    verify(inventoryService).checkStock(“item1”);
+    verify(paymentService).pay(new BigDecimal(“100”));
+}
+```
+**答案**：
+```java
+@Test
+public void testOrderProcessing_BDDStyle() {
+    // Given
+    given(inventoryService.checkStock(“item1”)).willReturn(true);
+    given(paymentService.pay(any(BigDecimal.class))).willReturn(“success”);
+    Order order = new Order(“item1”, new BigDecimal(“100”));
+    // When
+    String result = orderService.process(order);
+    // Then
+    then(result).isEqualTo(“Order processed”);
+    then(inventoryService).should().checkStock(“item1”);
+    then(paymentService).should().pay(new BigDecimal(“100”));
+}
+```
+
+**题目 3**：分析题：在一个前端 Vue 组件单元测试中，你需要模拟一个名为 `axios` 的 HTTP 客户端模块的 `post` 方法，使其返回一个固定的成功响应。请分别用 Jest 和 Vitest 写出模拟代码。
+**答案**：
+**Jest 方案**：
+```javascript
+// 在测试文件顶部模拟整个 axios 模块
+jest.mock(‘axios’);
+import axios from ‘axios’;
+// 在测试用例中
+axios.post.mockResolvedValue({ data: { id: 1, status: ‘ok’ } });
+```
+**Vitest 方案**：
+```javascript
+import { vi } from ‘vitest’;
+import axios from ‘axios’;
+// 模拟 axios 模块
+vi.mock(‘axios’);
+// 在测试用例中
+axios.post.mockResolvedValue({ data: { id: 1, status: ‘ok’ } });
+// 或者使用 vi.spyOn 如果 axios 是已导入的真实模块
+// vi.spyOn(axios, ‘post’).mockResolvedValue(...);
+```
+两者 API 高度相似，主要区别在于导入的 mock 函数来源（`jest` 对象 vs `vi` 对象）。
+
+---
+
+---
+# 模块五：可测试性设计与依赖注入
+
+## 知识点与讲解
+可测试性设计是构建易于测试的软件架构的核心思想，其目标是降低单元测试的编写和维护成本。依赖注入是实现可测试性的关键模式，它通过将依赖关系的创建与使用分离，使得在测试中能够轻松替换真实依赖为测试替身。
+
+### 可测试性的核心原则
+1.  **关注点分离**：业务逻辑应与基础设施（如数据库、网络、文件系统）分离。
+2.  **单一职责**：每个类或函数应只有一个明确的职责，便于独立测试。
+3.  **依赖倒置**：高层模块不应依赖低层模块，两者都应依赖于抽象（接口或抽象类）。
+4.  **显式依赖**：一个类所依赖的所有服务都应通过其构造函数、方法参数或属性明确地提供，而不是在内部隐式创建（如使用 `new` 操作符或全局静态访问）。
+
+### 依赖注入
+依赖注入是一种实现控制反转（IoC）的技术，用于管理对象间的依赖关系。
+
+#### 定义与模式
+**定义**：依赖注入是指将服务对象（依赖项）通过外部方式（而非在客户端内部创建）传递给客户端对象的过程。客户端只依赖于服务的抽象，不关心其具体实现和生命周期管理。
+
+**三种主要模式**：
+1.  **构造函数注入**：依赖项通过类的构造函数参数传入。这是最推荐的方式，因为它能保证对象在创建后即处于完全初始化的有效状态。
+    ```java
+    public class OrderProcessor {
+        private final PaymentGateway gateway;
+        // 依赖通过构造函数注入
+        public OrderProcessor(PaymentGateway gateway) {
+            this.gateway = Objects.requireNonNull(gateway);
+        }
+        public void process(Order order) {
+            gateway.charge(order.getAmount());
+        }
+    }
+    ```
+2.  **Setter方法注入**：依赖项通过公共的setter方法设置。适用于可选依赖或需要重新绑定的场景，但可能导致对象在部分生命周期内处于依赖不完整的无效状态。
+3.  **接口注入**：客户端实现一个特定的接口，该接口包含一个用于注入依赖的方法。相对较少使用。
+
+#### 依赖注入容器
+对于大型应用，手动管理所有对象的创建和依赖关系图会非常繁琐。依赖注入容器（DI Container，或称IoC容器）应运而生，它能自动处理：
+*   **对象的实例化**。
+*   **依赖关系的装配**（根据类型或名称解析并注入）。
+*   **生命周期的管理**（如单例、每次请求新实例）。
+
+**常见DI框架**：Spring Framework (Java), Guice (Java), Dagger (Java/Android), .NET Core DI (C#), Angular (TypeScript)。
+
+### 设计模式与可测试性
+一些经典的设计模式天然地提升了可测试性：
+
+| 模式 | 对可测试性的贡献 | 示例场景 |
+| :--- | :--- | :--- |
+| **策略模式** | 将算法封装为独立对象，便于在测试中替换或模拟。 | 不同的折扣计算策略、支付方式。 |
+| **工厂模式** | 将对象创建逻辑集中，便于在测试中返回模拟对象。 | 创建复杂的数据访问对象或网络客户端。 |
+| **适配器模式** | 将不便于测试的外部接口包装成统一的抽象接口。 | 封装第三方SDK、遗留系统API。 |
+| **观察者模式** | 允许测试用例订阅事件，验证系统在特定状态下的行为。 | 用户操作日志、状态变更通知。 |
+
+### 实践注意事项
+*   **避免静态方法和单例（硬编码）**：它们会创建隐藏的、难以替换的依赖，破坏可测试性。如果必须使用，考虑将其包装在可注入的服务中。
+*   **为外部依赖定义接口**：即使外部类（如`HttpClient`）没有现成接口，也应为其定义一个适配接口，以便于模拟。
+*   **保持构造函数简洁**：构造函数应只用于接收和赋值依赖项，不应包含复杂的逻辑。
+*   **使用组合而非继承**：过度使用继承会导致测试子类时需要了解父类的复杂状态和行为，组合更灵活、更易于测试。
+
+## 题目与答案
+**题目 1**：概念辨析题。请解释“控制反转”（IoC）和“依赖注入”（DI）这两个概念的联系与区别。
+**答案**：控制反转（IoC）是一种更宽泛的设计原则，指将程序流程的控制权从应用程序代码转移给框架或容器。依赖注入（DI）是实现IoC的一种具体技术模式，它通过外部注入的方式来管理对象间的依赖关系，从而实现了对依赖创建控制权的反转。简言之，IoC是目的（反转控制），DI是达成此目的的重要手段之一。
+
+**题目 2**：分析题。以下代码片段的可测试性存在什么问题？如何改进？
+```java
+public class WeatherService {
+    public String getWeatherReport(String city) {
+        HttpClient client = new DefaultHttpClient(); // 在内部创建依赖
+        String response = client.get("https://api.weather.com/" + city);
+        // ... 解析 response ...
+        return report;
+    }
+}
+```
+**答案**：主要问题是**隐藏的依赖**。`WeatherService`在方法内部直接实例化了`HttpClient`，这导致无法在单元测试中隔离外部API调用。改进方法是使用**依赖注入**和**定义接口**。首先，为HTTP客户端定义一个接口（如`HttpClient`），然后通过构造函数将该接口的实例注入`WeatherService`。这样，在测试中就可以注入一个模拟的`HttpClient`，返回预设的测试数据。
+
+**题目 3**：动手题。为一个简单的`UserService`类（包含一个`login`方法，该方法需要调用`UserRepository`来查找用户）编写代码，展示如何使用构造函数注入来提升其可测试性。只需写出类定义和构造函数。
+**答案**：
+```java
+// 1. 定义仓库接口（抽象）
+public interface UserRepository {
+    User findByUsername(String username);
+}
+
+// 2. 服务类依赖接口，并通过构造函数注入
+public class UserService {
+    private final UserRepository userRepository;
+
+    // 构造函数注入
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public boolean login(String username, String password) {
+        User user = userRepository.findByUsername(username);
+        // ... 验证密码逻辑 ...
+        return isValid;
+    }
+}
+// 测试时，可以传入一个模拟的UserRepository实现。
+```
+
+---
+# 模块六：高级模式与经典文献精读
+
+## 知识点与讲解
+本模块深入探讨测试替身领域的高级应用模式，并精读奠定该领域基石的经典文献，以深化理论理解并指导复杂场景下的实践。
+
+### 高级测试替身模式
+
+#### 测试间谍进阶：行为验证与“监视”
+除了捕获调用参数，高级的间谍模式还用于验证**行为交互**，即验证被测系统是否以正确的顺序、次数和参数调用了依赖对象的方法。
+*   **原理**：间谍对象记录所有与其交互的细节（方法名、参数、调用顺序、次数）。
+*   **示例（使用Mockito）**：
+    ```java
+    // 创建真实对象作为间谍
+    List<String> spyList = spy(new ArrayList<>());
+    // 调用被测代码（间接调用间谍）
+    spyList.add("item1");
+    spyList.add("item2");
+    // 验证行为：是否被调用了两次，且第二次调用参数是"item2"
+    verify(spyList, times(2)).add(anyString());
+    verify(spyList).add("item2");
+    ```
+*   **注意事项**：过度使用行为验证可能导致测试过于脆弱（与实现细节紧耦合）。应优先验证状态（结果），而非交互。
+
+#### 部分模拟
+当需要对一个真实对象的大部分行为保持原样，只模拟或监视其中少数几个方法时，使用部分模拟。这通常通过创建“间谍”来实现。
+*   **场景**：测试一个复杂类，其中某个方法调用了外部服务（需要模拟），而其他方法都是纯计算逻辑（可以保留真实行为）。
+*   **风险**：滥用部分模拟可能意味着类的职责过多，违反了单一职责原则，应考虑重构。
+
+#### 自封装的测试替身
+用于测试类自身的私有方法或内部状态的一种有争议的模式。通常不推荐，因为它破坏了封装性。更好的做法是：
+1.  通过类的公有方法测试私有方法的效果。
+2.  如果私有方法足够复杂，考虑将其提取到一个新的、可独立测试的类中。
+3.  如果必须使用，某些框架（如PowerMock）可以通过字节码操作实现，但这会降低测试速度并增加复杂度。
+
+#### 模拟框架的链式调用与异常模拟
+现代模拟框架支持流畅的API来配置复杂行为。
+*   **链式调用模拟**：模拟一个方法返回的对象本身也是模拟对象。
+    ```java
+    when(mockOrder.getCustomer().getAddress().getCity()).thenReturn("Shanghai");
+    ```
+*   **异常模拟**：验证被测系统是否能正确处理依赖抛出的异常。
+    ```java
+    when(mockRepository.findById(anyLong())).thenThrow(new EntityNotFoundException());
+    // 然后验证被测服务是否抛出了预期的业务异常或进行了妥善处理
+    ```
+
+### 经典文献精读：《Mock Roles, not Objects》
+
+这篇由Steve Freeman、Nat Pryce等人在2004年OOPSLA会议上发表的论文，是Mockist测试（或称“伦敦学派”）的奠基之作。它系统阐述了基于Mock对象进行单元测试的理念和方法论。
+
+#### 核心思想
+1.  **角色（Role）而非对象（Object）**：测试应关注对象在特定上下文中所扮演的“角色”（即接口），而不是具体的对象实现。Mock对象代表的是这些角色在测试中的替身。
+2.  **基于交互的测试**：论文主张单元测试的核心是验证对象与其协作对象（角色）之间的**消息传递（交互）** 是否符合预期，而不仅仅是检查最终状态。这有助于设计出交互清晰、职责明确的松散耦合对象。
+3.  **驱动设计**：使用Mock对象进行测试（TDD）会自然地驱动开发者思考接口设计，因为你需要先定义协作对象的角色（接口），才能创建它的Mock。这被称为“由外向内”的开发方式。
+
+#### 提出的模式与建议
+*   **Tell, Don‘t Ask**：鼓励命令式交互（告诉对象做什么），而非查询式交互（询问对象状态再决定），这使测试更关注行为。
+*   **注入依赖**：明确地将协作对象作为参数传入，这是使用Mock的前提。
+*   **每个测试仅模拟直接邻居**：一个单元测试只应模拟被测对象的直接依赖，不应深入模拟依赖的依赖，以保持测试的清晰和聚焦。
+
+#### 影响与争议
+*   **影响**：极大地推广了Mocking框架的使用，促进了面向接口和组件化设计。
+*   **争议**：与“底特律学派”（Classic TDD）形成对比。后者更强调状态验证和“从内向外”开发，认为过度使用Mock会导致测试脆弱、重构困难。现代实践通常提倡**根据依赖类型选择替身策略**：对**命令型**依赖（如发送邮件、保存数据）可使用Mock进行行为验证；对**查询型**依赖（如获取配置、计算税费）可使用Stub或Fake提供固定响应，并验证状态结果。
+
+### 现代实践：测试金字塔与替身策略
+结合经典文献与“测试金字塔”模型，形成以下策略：
+*   **单元测试（金字塔底）**：大量使用测试替身（尤其是Mock和Stub）来隔离单元，验证业务逻辑。这是《Mock Roles》论文主要关注的层面。
+*   **集成测试（金字塔中）**：有限使用测试替身。用Fake替换外部服务（如内存数据库），但对核心组件使用真实对象，验证它们能否正确协作。
+*   **端到端测试（金字塔顶）**：避免使用测试替身。使用完全真实的系统，验证用户旅程。
+
+## 题目与答案
+**题目 1**：概念辨析题。根据《Mock Roles, not Objects》的观点，“基于状态的测试”和“基于交互的测试”的主要区别是什么？Mockist测试更倾向于哪一种？
+**答案**：主要区别在于验证的焦点不同。基于状态的测试验证被测系统执行操作后，其内部状态或所返回的结果是否符合预期。基于交互的测试则验证被测系统是否以正确的方式调用了其依赖对象（即消息传递是否正确）。Mockist测试（伦敦学派）更倾向于基于交互的测试，强调通过Mock对象来验证对象间的协作协议。
+
+**题目 2**：分析题。在测试一个`OrderSubmitter`类时，你发现它调用了`InventoryService.checkStock()`和`PaymentService.charge()`。根据上下文，你会选择对这两个依赖使用Mock、Stub还是Fake？请分别说明理由。
+**答案**：
+*   对`InventoryService.checkStock()`：倾向于使用**Stub**。因为这是一个**查询**操作，我们需要它返回一个预设的库存状态（如有货/无货），以便测试`OrderSubmitter`在不同库存状态下的行为（如下单或拒绝）。我们主要关心`OrderSubmitter`根据查询结果做出的决策（状态），而非调用细节。
+*   对`PaymentService.charge()`：倾向于使用**Mock**。因为这是一个**命令**操作，其核心目的是产生副作用（执行扣款）。我们需要验证`OrderSubmitter`在正确的时候（如库存充足时）以正确的参数（订单金额）调用了`charge`方法。这里交互的正确性至关重要。
+
+**题目 3**：动手题。使用Mockito（或你熟悉的框架）编写一个简单的测试片段，演示如何验证一个`NotificationService`的`sendEmail`方法在被测代码中被调用了一次，且调用参数中的收件人邮箱是`“user@example.com”`。
+**答案**：
+```java
+// 假设已有 mockNotificationService 和被测对象 userManager
+@Test
+public void shouldSendEmailWhenUserIsCreated() {
+    // ... 执行创建用户的操作，内部应调用 notificationService.sendEmail(...)
+    userManager.createUser("user@example.com", "John Doe");
+
+    // 验证交互：sendEmail 被调用一次，且参数匹配
+    verify(mockNotificationService, times(1))
+            .sendEmail(eq("user@example.com"), anyString(), anyString());
+    // 更精确的验证可以检查所有参数
+    // verify(mockNotificationService).sendEmail("user@example.com", "Welcome", "...");
+}
+```
+
+---
+
+---
+# 模块七：综合项目实战
+
+## 知识点与讲解
+本模块旨在通过一个完整的项目实战，将前面所学的Mock与测试替身知识融会贯通。我们将构建一个简化的“用户通知服务”，并为其编写高质量的单元测试和集成测试。
+
+### 项目概述：用户通知服务
+假设我们有一个微服务，其核心职责是：当用户完成某个操作（如订单支付成功）时，根据用户的偏好设置，通过不同的渠道（如邮件、短信、站内信）发送通知。
+服务结构如下：
+1.  **`UserPreferenceService`**：外部服务，获取用户的渠道偏好（如 `email`， `sms`）。
+2.  **`EmailSender`**, **`SmsSender`**, **`MessageSender`**：具体的外部通知发送客户端，依赖第三方API。
+3.  **`NotificationService`**：我们的核心业务类，协调上述依赖，实现发送逻辑。
+
+### 实战步骤与核心技巧
+#### 1. 项目结构与依赖注入
+首先，采用依赖注入（DI）模式设计`NotificationService`，使其不直接实例化外部依赖，而是通过构造函数或Setter方法注入。这是使用测试替身的前提。
+```java
+public class NotificationService {
+    private final UserPreferenceService preferenceService;
+    private final EmailSender emailSender;
+    private final SmsSender smsSender;
+    private final MessageSender messageSender;
+
+    // 构造函数注入
+    public NotificationService(UserPreferenceService preferenceService,
+                               EmailSender emailSender,
+                               SmsSender smsSender,
+                               MessageSender messageSender) {
+        this.preferenceService = preferenceService;
+        this.emailSender = emailSender;
+        this.smsSender = smsSender;
+        this.messageSender = messageSender;
+    }
+
+    public void notifyUser(String userId, String event) {
+        // 业务逻辑
+    }
+}
+```
+
+#### 2. 使用Mock进行行为验证与存根
+对`UserPreferenceService`和各个`Sender`使用Mock。
+- **存根（Stub）**：预设`preferenceService.getPreference(userId)`返回特定的偏好列表。
+- **行为验证**：验证根据偏好，正确的`Sender`的`send`方法被调用，且参数符合预期。
+- **关键点**：Mock那些具有**外部副作用**（如调用HTTP API、发送邮件）或**状态难以掌控**的依赖。
+
+#### 3. 使用Spy进行部分模拟
+假设`MessageSender`（站内信）是我们系统内的一个复杂组件，其`saveToDatabase`方法我们想使用真实逻辑，但`pushToUser`方法涉及网络调用需要模拟。这时可以使用Spy。
+```java
+// 创建一个真实的MessageSender对象
+MessageSender realSender = new MessageSender();
+// 将其包装为Spy
+MessageSender senderSpy = Mockito.spy(realSender);
+// 模拟pushToUser方法
+doNothing().when(senderSpy).pushToUser(anyString());
+// 保留saveToDatabase的真实行为
+```
+
+#### 4. 使用Fake替代重量级依赖
+如果项目中有一个用于缓存的`UserCacheRepository`依赖，在测试中我们可以创建一个**Fake**实现（如基于`ConcurrentHashMap`的内存实现），来替代真实的Redis或数据库客户端。这使测试更快、更稳定。
+```java
+public class FakeUserCacheRepository implements UserCacheRepository {
+    private Map<String, User> cache = new ConcurrentHashMap<>();
+    @Override
+    public User findById(String id) { return cache.get(id); }
+    @Override
+    public void save(User user) { cache.put(user.getId(), user); }
+}
+```
+
+#### 5. 集成测试策略
+- **使用`@MockBean`进行Spring上下文测试**：在Spring Boot测试中，使用`@MockBean`将容器中的真实Bean替换为Mock，然后验证整个应用上下文下的集成逻辑。
+- **使用Testcontainers进行真实依赖测试**：对于某些关键集成点（如数据库操作），可以编写使用Testcontainers启动真实数据库容器的集成测试，此时应**减少Mock的使用**，专注于验证与真实组件的交互是否正确。
+
+#### 6. 测试模式与最佳实践总结
+- **Given-When-Then**：清晰组织测试代码结构。
+- **每个测试一个断言**：聚焦于验证单个行为，提高可读性。
+- **使用匹配器（Matchers）**：如`anyString()`, `eq(value)`，使验证更灵活。
+- **验证交互次数**：`times(1)`, `never()`，确保没有多余的或遗漏的调用。
+- **处理异常流**：使用`doThrow().when()`模拟依赖抛出异常，测试核心服务的异常处理逻辑。
+
+## 题目与答案
+**题目1**：在“用户通知服务”项目中，`NotificationService` 的 `notifyUser` 方法需要先调用 `UserPreferenceService` 获取偏好，然后循环遍历偏好并调用对应的发送器。请设计一个测试用例，验证当用户偏好为 `[“email”, “sms”]` 时，`EmailSender.send` 和 `SmsSender.send` 各被调用一次，而 `MessageSender.send` 未被调用。请写出关键的Mockito代码片段（Given-When-Then部分）。
+
+**答案**：
+```java
+// Given
+given(preferenceServiceMock.getPreference(“user123”)).willReturn(Arrays.asList(“email”, “sms”));
+// When
+notificationService.notifyUser(“user123”, “PaymentSuccess”);
+// Then
+then(emailSenderMock).should(times(1)).send(eq(“user123”), eq(“PaymentSuccess”));
+then(smsSenderMock).should(times(1)).send(eq(“user123”), eq(“PaymentSuccess”));
+then(messageSenderMock).should(never()).send(anyString(), anyString());
+```
+关键点：使用 `given().willReturn()` 进行存根，使用 `then().should()` 进行行为验证，并结合 `times()` 和 `never()` 验证调用次数，使用 `eq()` 匹配器验证参数。
+
+**题目2**：概念辨析题：在为一个复杂的文件解析器编写测试时，你选择为“网络下载器”依赖创建Mock，而为“本地文件校验器”依赖创建Spy。请解释做出这两种不同选择背后的典型原因。
+
+**答案**：
+选择Mock“网络下载器”是因为它的行为（从互联网下载文件）具有外部依赖性、速度慢且不可控，测试中我们只关心核心逻辑是否调用了它并传递了正确参数，而不需要真实网络交互。选择Spy“本地文件校验器”是因为它可能包含我们想要实际执行的复杂核心校验逻辑（如文件格式验证），但其中可能混有需要隔离的次要副作用（如日志记录），使用Spy可以保留其主要逻辑的真实行为，同时模拟或验证其特定方法的调用。
+
+**题目3**：分析题：在查看一个项目的集成测试时，你发现测试类中大量使用了Mockito的 `@Mock` 和 `@InjectMocks`，甚至将数据库访问层（DAO）的Bean也完全Mock了，只验证了Service层是否调用了DAO的方法。请分析这种测试方法的潜在弊端，并给出改进建议。
+
+**答案**：
+这种测试的弊端在于它实际上变成了对Service层内部实现的“脆弱测试”，一旦Service调用DAO的方式改变（如方法名、参数顺序），测试就会失败，尽管最终的数据操作结果可能正确。它完全无法验证SQL语句的正确性、ORM映射或事务管理。改进建议是：对于DAO/Repository层，应编写与真实数据库（可使用嵌入式数据库如H2，或Testcontainers）交互的集成测试。在Service层的集成测试中，可以注入真实的DAO Bean，从而测试从业务逻辑到数据持久化的完整链条，确保行为正确而非仅仅实现正确。
+
+# 进阶方向
+**Mock在契约测试与消费者驱动契约（CDC）中的应用**：研究如何利用Mock Server（如Pact的Mock Service）在消费者端生成请求期望，在提供者端验证其实现是否满足契约。这超越了单服务内的单元测试，用于保障微服务间API的兼容性。
+
+**测试替身与“测试金字塔”中各层的匹配策略**：深入分析在单元测试、集成测试、端到端测试中，不同类型测试替身（Mock, Stub, Spy, Fake）的使用比例和最佳实践。探讨如何避免在高层测试中过度使用Mock导致的“失真”测试。
+
+**基于代码生成的智能Mock技术**：研究现代框架如MockServer、WireMock的高级特性，以及如何利用OpenAPI规范或gRPC proto文件自动生成更精确的Mock实现和测试用例，提升测试代码的生成效率与准确性。
+
+**无Mock（Mockless）测试的倡导与实践**：探索“伦敦学派”（基于Mock）与“古典学派”（基于真实对象）的长期争论。研究通过依赖注入、端口与适配器架构（六边形架构）设计，最大化使用Fake和真实对象，减少对交互验证型Mock的依赖，以编写更聚焦于状态和结果的测试。
+
+**测试替身对系统设计可测试性的反向影响**：分析如何通过“为测试而设计”的理念（如DIP依赖倒置原则、接口隔离），使系统自然更容易注入测试替身。研究糟糕的依赖设计（如静态方法、紧耦合）如何导致测试难以编写，从而推动更清晰的架构设计。
